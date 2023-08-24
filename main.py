@@ -54,24 +54,22 @@ def make_graph(politicians_dict, arquivo_graph, threshold, g, op):
                 b = int(key)
             #Resgata o inteiro relacionado a quantidade de participações de votações do politico menos participativo entre os 2 e normaliza
             menor_participacao = menorElemento(a, b)
-            normalizacao = int(elementos[2]) / menor_participacao
+            normalizacao = float(elementos[2]) / menor_participacao
 
-            if op == 1:
-                #Caso a normalização esteja acima do trashhold, adiciona a aresta ao gráfico, já realizando a inversão de pesos para funções de caminho mínimo (1-normalização)
-                if normalizacao > threshold:
-                    peso = float(1-normalizacao)
-                    for key in politicians_dict[elementos[0]]:
-                        elementos[0] = elementos[0] + " " + f"({politicians_dict[elementos[0]][key]})"
-                    for key in politicians_dict[elementos[1]]:
-                        elementos[1] = elementos[1] + " " + f"({politicians_dict[elementos[1]][key]})"
-                    g.add_edge(elementos[0], elementos[1], weight = peso)
-            if op == 0:
-                #adiciona os partidos na frente dos deputados
-                for key in politicians_dict[elementos[0]]:
-                    elementos[0] = elementos[0] + " " + f"({politicians_dict[elementos[0]][key]})"
-                for key in politicians_dict[elementos[1]]:
-                    elementos[1] = elementos[1] + " " + f"({politicians_dict[elementos[1]][key]})"
-                g.add_edge(elementos[0], elementos[1], weight = normalizacao)
+            #adiciona os partidos na frente dos deputados
+            for key in politicians_dict[elementos[0]]:
+                elementos[0] = elementos[0] + " " + f"({politicians_dict[elementos[0]][key]})"
+            for key in politicians_dict[elementos[1]]:
+                elementos[1] = elementos[1] + " " + f"({politicians_dict[elementos[1]][key]})"
+
+            if not g.has_edge(elementos[0], elementos[1]):
+                if op == 1:
+                    #Caso a normalização esteja acima do trashhold, adiciona a aresta ao gráfico, já realizando a inversão de pesos para funções de caminho mínimo (1-normalização)
+                    if normalizacao >= threshold:
+                        peso = float(1-normalizacao)
+                        g.add_edge(elementos[0], elementos[1], weight = peso)
+                if op == 0:
+                    g.add_edge(elementos[0], elementos[1], weight = normalizacao)
 
 def betweeness_bar_graphic(centrality_dict):
     plt.clf()
@@ -90,13 +88,14 @@ def betweeness_bar_graphic(centrality_dict):
 
     ax.bar(deputados, deputados_centralidade, label='blue', color='blue', align='center')
     plt.xticks(range(len(deputados)), deputados, rotation=45, ha='right', fontsize=2.25, y=0.01)
-    plt.yticks(fontsize=2.25)
+    plt.yticks(fontsize=2.5)
+    for spine in ax.spines.values():
+        spine.set_linewidth(0.1)
     
     ax.set_ylabel('centralidade')
     ax.set_title('deputados')
 
-    plt.tight_layout()
-    plt.savefig("betweenessGraphic.png", dpi=400)
+    plt.savefig("betweenessGraphic.png", dpi=800)
     plt.close()
 
 def heatmap_graphic(g):
@@ -106,8 +105,10 @@ def heatmap_graphic(g):
     # Crie uma matriz de adjacência ponderada a partir do grafo
     nodes = list(g.nodes())
     num_nodes = len(nodes)
+    # Junta grupos de mesmo partido por ordenação, compara a palavra depois do último espaço
     nodes = sorted(nodes, key=lambda x: x.rsplit(' ', 1)[-1])
 
+    #Cria matriz de zeros para o heatmap
     adj_matrix = np.zeros((num_nodes, num_nodes))
     for i, node1 in enumerate(nodes):
         for j, node2 in enumerate(nodes):
