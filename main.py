@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from PySimpleGUI import PySimpleGUI as sg
 
 def menorElemento(a, b):
     if a<b:
@@ -141,36 +142,79 @@ def plotGraphic(g):
     node_colors = [group_colors[node.split("(")[-1].strip(")")] for node in g.nodes()]
 
     # Desenhe o grafo com as posições e cores dos nós
-    nx.draw(g, pos, with_labels=True, node_size=200, node_color=node_colors, font_size=8)
+    nx.draw(g, pos, with_labels=True, node_size=25, node_color=node_colors, font_size=2.5, width=0.1)
 
     # Crie uma legenda para os grupos
-    plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', label=group, markersize=10, markerfacecolor=color)for group, color in group_colors.items()])
-    plt.savefig("plotMap.png", dpi=400)
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=group, markersize=7, markerfacecolor=color)for group, color in group_colors.items()]
+    plt.legend(handles=legend_elements, loc='upper right', fontsize='small', frameon=False)
+    plt.savefig("graph.png", dpi=800)
     plt.close()
 
+def first_window():
+    #Layout
+    sg.theme('Dark')
+    layout = [
+        [sg.Text('Ano', size=8), sg.Input(key='ano')],
+        [sg.Text('Threshold', size=8), sg.Input(key='threshold'), sg.Text('Ex: 0.9')],
+        [sg.Text('Partidos', size=8), sg.Input(key='partidos'), sg.Text('Ex: PT PSOL MDB')],
+        [sg.Button('GERAR GRÁFICOS', button_color='Gray')]
+    ]
+    return  sg.Window('Análise de partidos', layout, finalize=True)
 
+def return_window():
+    sg.theme('Dark')
+    layout = [
+        [sg.Text('Plots salvos em:', size=12), sg.Text('betweenessGraphic.png')],
+        [sg.Text(' ', size=12), sg.Text('heatMap.png')],
+        [sg.Text(' ', size=12), sg.Text('graph.png')],
+        [sg.Button('ALTERAR PARÂMETROS', button_color='Gray')]
+    ]
+    return  sg.Window('Análise de partidos', layout, finalize=True)
 
-partidos = []
-politicians_dict = {}
+janela1, janela2 = first_window(), None
 
-ano = input("Qual o ano da análise? ")
-threshold = float(input("Qual o threshold?"))
-partidos_de_analise = input("Quais partidos serão analizados? formato exemplo(PT PSOL MDB), vazio caso queira todos os partidos em análise.")
+#Ler eventos
+while True:
+    window, eventos, valores = sg.read_all_windows()
+    if window == janela1 and eventos == sg.WINDOW_CLOSED:
+        break
+    if window == janela1 and eventos == 'GERAR GRÁFICOS':
 
-g = nx.Graph()
+        ano = int(valores['ano'])
+        threshold = float(valores['threshold'])
+        partidos_de_analise = valores['partidos']
 
-arquivo_graph = open(f"datasets\graph{ano}.txt", "r", encoding="utf-8")
-arquivo_politicians = open(f"datasets\politicians{ano}.txt", "r", encoding="utf-8")
+        partidos = []
+        politicians_dict = {}
 
-partidos = lista_de_partidos_em_análise(partidos_de_analise, arquivo_politicians)
-politicians_dict = return_politicians_dict(partidos, arquivo_politicians)
+        #inicia um grafo da biblioteca networkx
+        g = nx.Graph()
 
-make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
-centrality_dict = nx.betweenness_centrality(g)
-betweeness_bar_graphic(centrality_dict)
+        #Abre os arquivos de dados
+        arquivo_graph = open(f"datasets\graph{ano}.txt", "r", encoding="utf-8")
+        arquivo_politicians = open(f"datasets\politicians{ano}.txt", "r", encoding="utf-8")
 
-make_graph(politicians_dict, arquivo_graph, threshold, g, 0)
-heatmap_graphic(g)
+        #Cria uma lista de partidos a serem análizados e um dicionário com dados dos politicos desses partidos
+        partidos = lista_de_partidos_em_análise(partidos_de_analise, arquivo_politicians)
+        politicians_dict = return_politicians_dict(partidos, arquivo_politicians)
 
-make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
-plotGraphic(g)
+        #Cria o grafico de centralidade
+        make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
+        centrality_dict = nx.betweenness_centrality(g)
+        betweeness_bar_graphic(centrality_dict)
+
+        #Cria o heatmap
+        make_graph(politicians_dict, arquivo_graph, threshold, g, 0)
+        heatmap_graphic(g)
+
+        #Cria o grafico de plots(graph.png)
+        make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
+        plotGraphic(g)
+
+        janela2=return_window()
+        janela1.hide()
+    
+    if window == janela2 and eventos == 'ALTERAR PARÂMETROS':
+        janela2.hide()
+        janela1.un_hide()
+        
