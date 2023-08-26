@@ -72,7 +72,7 @@ def make_graph(politicians_dict, arquivo_graph, threshold, g, op):
                 if op == 0:
                     g.add_edge(elementos[0], elementos[1], weight = normalizacao)
 
-def betweeness_bar_graphic(centrality_dict):
+def betweeness_bar_graph(centrality_dict):
     plt.clf()
     plt.figure()
     plt.title("Betweeness graphic")
@@ -96,10 +96,10 @@ def betweeness_bar_graphic(centrality_dict):
     ax.set_ylabel('centralidade')
     ax.set_title('deputados')
 
-    plt.savefig("betweenessGraphic.png", dpi=800)
-    plt.close()
+    plt.savefig("betweenessGraph.png", dpi=800)
+    plt.close("all")
 
-def heatmap_graphic(g):
+def heatmap_graph(g):
     plt.clf()
     plt.figure()
     plt.title("HeatMap")
@@ -125,9 +125,12 @@ def heatmap_graphic(g):
     plt.yticks(np.arange(num_nodes), nodes, fontsize = 2.55)
 
     plt.savefig("heatMap.png", dpi=400)
-    plt.close()
+    plt.close("all")
 
-def plotGraphic(g):
+def plotGraph(g):
+    plt.clf()
+    plt.figure()
+    plt.title("Graph")
     # Crie um dicionário de grupos para as cores
     group_colors = {}
 
@@ -145,10 +148,11 @@ def plotGraphic(g):
     nx.draw(g, pos, with_labels=True, node_size=25, node_color=node_colors, font_size=2.5, width=0.1)
 
     # Crie uma legenda para os grupos
-    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=group, markersize=7, markerfacecolor=color)for group, color in group_colors.items()]
-    plt.legend(handles=legend_elements, loc='upper right', fontsize='small', frameon=False)
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=group, markersize=4, markerfacecolor=color)for group, color in group_colors.items()]
+    legend = plt.legend(handles=legend_elements, loc='upper right', prop={'size':4}, frameon=False)
+    legend.set_title("Groups", prop={'size': 'x-small'})
     plt.savefig("graph.png", dpi=800)
-    plt.close()
+    plt.close("all")
 
 def first_window():
     #Layout
@@ -164,7 +168,7 @@ def first_window():
 def return_window():
     sg.theme('Dark')
     layout = [
-        [sg.Text('Plots salvos em:', size=12), sg.Text('betweenessGraphic.png')],
+        [sg.Text('Plots salvos em:', size=12), sg.Text('betweenessGraph.png')],
         [sg.Text(' ', size=12), sg.Text('heatMap.png')],
         [sg.Text(' ', size=12), sg.Text('graph.png')],
         [sg.Button('ALTERAR PARÂMETROS', button_color='Gray')]
@@ -175,46 +179,50 @@ janela1, janela2 = first_window(), None
 
 #Ler eventos
 while True:
-    window, eventos, valores = sg.read_all_windows()
-    if window == janela1 and eventos == sg.WINDOW_CLOSED:
-        break
-    if window == janela1 and eventos == 'GERAR GRÁFICOS':
+    try:
+        window, eventos, valores = sg.read_all_windows()
+        if window == janela1 and eventos == sg.WINDOW_CLOSED:
+            break
+        if window == janela1 and eventos == 'GERAR GRÁFICOS':
 
-        ano = int(valores['ano'])
-        threshold = float(valores['threshold'])
-        partidos_de_analise = valores['partidos']
+            ano = int(valores['ano'])
+            threshold = float(valores['threshold'])
+            partidos_de_analise = valores['partidos']
 
-        partidos = []
-        politicians_dict = {}
+            partidos = []
+            politicians_dict = {}
 
-        #inicia um grafo da biblioteca networkx
-        g = nx.Graph()
+            #inicia um grafo da biblioteca networkx
+            g = nx.Graph()
 
-        #Abre os arquivos de dados
-        arquivo_graph = open(f"datasets\graph{ano}.txt", "r", encoding="utf-8")
-        arquivo_politicians = open(f"datasets\politicians{ano}.txt", "r", encoding="utf-8")
+            #Abre os arquivos de dados
+            arquivo_graph = open(f"datasets\graph{ano}.txt", "r", encoding="utf-8")
+            arquivo_politicians = open(f"datasets\politicians{ano}.txt", "r", encoding="utf-8")
 
-        #Cria uma lista de partidos a serem análizados e um dicionário com dados dos politicos desses partidos
-        partidos = lista_de_partidos_em_análise(partidos_de_analise, arquivo_politicians)
-        politicians_dict = return_politicians_dict(partidos, arquivo_politicians)
+            #Cria uma lista de partidos a serem análizados e um dicionário com dados dos politicos desses partidos
+            partidos = lista_de_partidos_em_análise(partidos_de_analise, arquivo_politicians)
+            politicians_dict = return_politicians_dict(partidos, arquivo_politicians)
 
-        #Cria o grafico de centralidade
-        make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
-        centrality_dict = nx.betweenness_centrality(g)
-        betweeness_bar_graphic(centrality_dict)
+            #Cria o grafico de centralidade
+            make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
+            centrality_dict = nx.betweenness_centrality(g)
+            betweeness_bar_graph(centrality_dict)
 
-        #Cria o heatmap
-        make_graph(politicians_dict, arquivo_graph, threshold, g, 0)
-        heatmap_graphic(g)
+            #Cria o heatmap
+            make_graph(politicians_dict, arquivo_graph, threshold, g, 0)
+            heatmap_graph(g)
 
-        #Cria o grafico de plots(graph.png)
-        make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
-        plotGraphic(g)
+            #Cria o grafico de plots(graph.png)
+            make_graph(politicians_dict, arquivo_graph, threshold, g, 1)
+            plotGraph(g)
 
-        janela2=return_window()
-        janela1.hide()
-    
+            janela2=return_window()
+            janela1.hide()
+    except:
+        print("Ocorreu uma exceção")
     if window == janela2 and eventos == 'ALTERAR PARÂMETROS':
         janela2.hide()
         janela1.un_hide()
+    if window == janela2 and eventos == sg.WINDOW_CLOSED:
+        break
         
